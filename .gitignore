@@ -26,6 +26,6 @@ hs_err_pid*
 # 文件夹及文件
 out
 .idea
-JavaJDK8.iml
+*.iml
 
 
