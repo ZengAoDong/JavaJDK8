@@ -489,6 +489,7 @@ public abstract class AbstractQueuedSynchronizer
          * Use when predecessor cannot be null.  The null check could
          * be elided, but is present to help the VM.
          *
+         * 返回上一节点，以及一些必要的检查。
          * @return the predecessor of this node
          */
         final Node predecessor() throws NullPointerException {
@@ -632,6 +633,7 @@ public abstract class AbstractQueuedSynchronizer
 
     /**
      * Wakes up node's successor, if one exists.
+     * 如果该节点存在后继节点的话，唤醒它。
      *
      * @param node the node
      */
@@ -640,6 +642,9 @@ public abstract class AbstractQueuedSynchronizer
          * If status is negative (i.e., possibly needing signal) try
          * to clear in anticipation of signalling.  It is OK if this
          * fails or if status is changed by waiting thread.
+         *
+         * 如果状态为负（即可能需要信号），尝试清除waitStatus中的signal标记。
+         * 如果此操作失败，或者状态被等待线程改变，也没有关系。
          */
         int ws = node.waitStatus;
         if (ws < 0)
@@ -666,6 +671,8 @@ public abstract class AbstractQueuedSynchronizer
      * Release action for shared mode -- signals successor and ensures
      * propagation. (Note: For exclusive mode, release just amounts
      * to calling unparkSuccessor of head if it needs signal.)
+     *
+     * 共享模式的释放动作——标记后继节点和确保唤醒的传播。 （注意：对于独占模式，如果需要信号来唤醒，只能通过调用 unparkSuccessor 方法。）
      */
     private void doReleaseShared() {
         /*
@@ -681,13 +688,21 @@ public abstract class AbstractQueuedSynchronizer
          */
         for (;;) {
             Node h = head;
+            // 如果CLH队列中有有效节点
             if (h != null && h != tail) {
                 int ws = h.waitStatus;
+                // 一般情况下ws == Node.SIGNAL成立，走下面的逻辑
                 if (ws == Node.SIGNAL) {
+                    // 如果修改失败，循环再次获取
                     if (!compareAndSetWaitStatus(h, Node.SIGNAL, 0))
                         continue;            // loop to recheck cases
                     unparkSuccessor(h);
                 }
+                /*
+                 * 由于线程休眠前，总会把上一个节点的waitStatus修改为SIGNAL(-1)状态，所以当ws == 0时有以下两种情况：
+                 * 1.已经为最后一个节点，由于不存在后继节点，自然无从调起，不过该种情况已经被if (h != null && h != tail)过滤掉了
+                 * 2.该节点已经调起unparkSuccessor，的后继节点即将被unpark唤醒
+                 */
                 else if (ws == 0 &&
                          !compareAndSetWaitStatus(h, 0, Node.PROPAGATE))
                     continue;                // loop on failed CAS
@@ -701,7 +716,7 @@ public abstract class AbstractQueuedSynchronizer
      * Sets head of queue, and checks if successor may be waiting
      * in shared mode, if so propagating if either propagate > 0 or
      * PROPAGATE status was set.
-     *
+     * 设置队列头，并检查后续节点是否在共享模式下等待，如果propagate > 0 或 waitStatus 设置了 PROPAGATE 状态，则传播唤醒后续节点。
      * @param node the node
      * @param propagate the return value from a tryAcquireShared
      */

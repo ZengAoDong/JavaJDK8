@@ -44,4 +44,8 @@
 
 ### 已添加注释的类
 
-- 暂无
+**1. JUC包**
+
+- AbstractQueuedSynchronizer（部分方法）
+
+- Semaphore（部分方法）

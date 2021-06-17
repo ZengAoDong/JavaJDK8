@@ -183,7 +183,9 @@ public class Semaphore implements java.io.Serializable {
                     return remaining;
             }
         }
-
+        /*
+         * 把减掉的信号量加回去
+         */
         protected final boolean tryReleaseShared(int releases) {
             for (;;) {
                 int current = getState();
