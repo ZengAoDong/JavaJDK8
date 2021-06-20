@@ -193,7 +193,8 @@ public class ReentrantLock implements Lock, java.io.Serializable {
     }
 
     /**
-     * Sync object for non-fair locks
+     * Sync object for non-fair locks\
+     * 非公平锁同步对象
      */
     static final class NonfairSync extends Sync {
         private static final long serialVersionUID = 7316153563782823691L;
@@ -216,6 +217,7 @@ public class ReentrantLock implements Lock, java.io.Serializable {
 
     /**
      * Sync object for fair locks
+     * 公平锁同步对象
      */
     static final class FairSync extends Sync {
         private static final long serialVersionUID = -3000897897090466540L;

@@ -657,6 +657,7 @@ public abstract class AbstractQueuedSynchronizer
          * non-cancelled successor.
          */
         Node s = node.next;
+        // 跳过异常节点
         if (s == null || s.waitStatus > 0) {
             s = null;
             for (Node t = tail; t != null && t != node; t = t.prev)
@@ -865,6 +866,8 @@ public abstract class AbstractQueuedSynchronizer
      * Acquires in exclusive uninterruptible mode for thread already in
      * queue. Used by condition wait methods as well as acquire.
      *
+     * 以独占且不中断的模式获取已在队列中的线程。通过条件等待方法和acquire的方式来使用。
+     *
      * @param node the node
      * @param arg the acquire argument
      * @return {@code true} if interrupted while waiting
@@ -873,6 +876,7 @@ public abstract class AbstractQueuedSynchronizer
         boolean failed = true;
         try {
             boolean interrupted = false;
+            // 通过自旋方式等待和获取锁
             for (;;) {
                 final Node p = node.predecessor();
                 if (p == head && tryAcquire(arg)) {
@@ -881,6 +885,13 @@ public abstract class AbstractQueuedSynchronizer
                     failed = false;
                     return interrupted;
                 }
+                /*
+                 * shouldParkAfterFailedAcquire(p, node)判断在获取获取锁（acquire）失败后是否需要等待（park）
+                 *
+                 * parkAndCheckInterrupt()阻塞线程（park），且检查是否被中断过（Interrupt），
+                 * 以便于判断向外传递中断信号（参考acquire方法）
+                 * 或者抛出InterruptedException()异常（参考acquireInterruptibly方法中的doAcquireInterruptibly方法）
+                 */
                 if (shouldParkAfterFailedAcquire(p, node) &&
                     parkAndCheckInterrupt())
                     interrupted = true;
@@ -1204,6 +1215,15 @@ public abstract class AbstractQueuedSynchronizer
      * repeatedly blocking and unblocking, invoking {@link
      * #tryAcquire} until success.  This method can be used
      * to implement method {@link Lock#lock}.
+     *
+     * 独占模式且忽略中断获取使用权（一般为锁）。先尝试通过{@link #tryAcquire}方法
+     * 获取锁。如果获取失败，则{@link #acquireQueued}方法去尝试加入CLH队列，在该方法
+     * 中一般会通过自旋的方式，执行以下几步操作:
+     * 1.休眠前再次尝试获取锁，以保证锁在竞争小的情况下的轻量化
+     * 2.将{@link #addWaiter}获取到的Node节点添加到CLH队列后休眠等待唤醒
+     * 3.将{@link #release}中唤醒的线程去再次获取锁
+     * 如果捕捉到线程被标记过中断信号（Thread.interrupt）,由于内层会清除该信号，会通过
+     * {@link #selfInterrupt}再次标记，并把该信号传递出去
      *
      * @param arg the acquire argument.  This value is conveyed to
      *        {@link #tryAcquire} but is otherwise uninterpreted and
