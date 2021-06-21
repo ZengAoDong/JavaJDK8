@@ -49,3 +49,9 @@
 - AbstractQueuedSynchronizer（部分方法）
 
 - Semaphore（部分方法）
+
+**2.集合包**
+
+- ArrayList
+
+  可参考本人博客https://blog.csdn.net/August_Z/article/details/102993964
