@@ -1539,6 +1539,8 @@ public abstract class AbstractQueuedSynchronizer
      *   }
      * }}</pre>
      *
+     * 用于查询是否有比该线程等待时间更长的阻塞线程。主要用于公平锁的公平判断。
+     *
      * @return {@code true} if there is a queued thread preceding the
      *         current thread, and {@code false} if the current thread
      *         is at the head of the queue or the queue is empty
@@ -1547,10 +1549,15 @@ public abstract class AbstractQueuedSynchronizer
     public final boolean hasQueuedPredecessors() {
         // The correctness of this depends on head being initialized
         // before tail and on head.next being accurate if the current
-        // thread is first in queue.
+        // thread is first in queue.。
         Node t = tail; // Read fields in reverse initialization order
         Node h = head;
         Node s;
+        /*
+         * h != t 当头节点与尾节点相同(即h == t)的时候，说明CLH队列刚初始化且为空，故通过h != t作为判断依据
+         * h.next == null 当头节点的下一节点为null，则这是一个判断依据，以保证后续判断(s.thread != Thread.currentThread())不会报空指针
+         * h.next.thread != Thread.currentThread() 判断该节点是否为排在CLH队列第一位的节点，如果是，不存在比它等待更长时间的节点，符合公平性
+         */
         return h != t &&
             ((s = h.next) == null || s.thread != Thread.currentThread());
     }

@@ -125,10 +125,14 @@ public class ReentrantLock implements Lock, java.io.Serializable {
         /**
          * Performs non-fair tryLock.  tryAcquire is implemented in
          * subclasses, but both need nonfair try for trylock method.
+         *
+         * 执行不公平的tryLock。主要在子类NonfairSync中tryAcquire实现。
+         * 对于公平锁和非公平锁都需要对 trylock 方法进行非公平尝试。
          */
         final boolean nonfairTryAcquire(int acquires) {
             final Thread current = Thread.currentThread();
             int c = getState();
+            // c == 0表示没有线程持有锁（锁已完全释放）
             if (c == 0) {
                 if (compareAndSetState(0, acquires)) {
                     setExclusiveOwnerThread(current);
@@ -210,6 +214,9 @@ public class ReentrantLock implements Lock, java.io.Serializable {
                 acquire(1);
         }
 
+        /**
+         * tryAcquire的非公平版本。具体调用在{@link nonfairTryAcquire}中
+         */
         protected final boolean tryAcquire(int acquires) {
             return nonfairTryAcquire(acquires);
         }
@@ -229,13 +236,25 @@ public class ReentrantLock implements Lock, java.io.Serializable {
         /**
          * Fair version of tryAcquire.  Don't grant access unless
          * recursive call or no waiters or is first.
+         *
+         * tryAcquire的公平版本。除非递归调用、没有等待线程、是CLH队列第一个，否则不授予访问权限。
          */
         protected final boolean tryAcquire(int acquires) {
             final Thread current = Thread.currentThread();
             int c = getState();
+            // c == 0表示没有线程持有锁（锁已完全释放）
             if (c == 0) {
+                /*
+                 * 与非公平锁不同的是调用hasQueuedPredecessors()判断是否有等待时间更长的线程
+                 * 如果有，则tryAcquire失败，线程阻塞并排入CLH队列
+                 * 如果没有，则执行下面逻辑获取访问权限（锁）
+                 *
+                 * compareAndSetState方法通过CAS的方式去修改state
+                 * 失败则说明别的线程已经修改了这个值了，也就是锁被别人抢到了，则tryAcquire失败，线程阻塞并排入CLH队列
+                 */
                 if (!hasQueuedPredecessors() &&
                     compareAndSetState(0, acquires)) {
+                    // 把锁（独占模式）的所有者对象设置为当前线程对象
                     setExclusiveOwnerThread(current);
                     return true;
                 }
