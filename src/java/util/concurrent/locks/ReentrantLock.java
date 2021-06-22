@@ -126,8 +126,8 @@ public class ReentrantLock implements Lock, java.io.Serializable {
          * Performs non-fair tryLock.  tryAcquire is implemented in
          * subclasses, but both need nonfair try for trylock method.
          *
-         * 执行不公平的tryLock。主要在子类NonfairSync中tryAcquire实现。
-         * 对于公平锁和非公平锁都需要对 trylock 方法进行非公平尝试。
+         * <p>执行不公平的tryLock。主要在子类NonfairSync中tryAcquire实现。
+         * 对于公平锁和非公平锁都需要对 trylock 方法进行非公平尝试。</p>
          */
         final boolean nonfairTryAcquire(int acquires) {
             final Thread current = Thread.currentThread();
@@ -149,13 +149,28 @@ public class ReentrantLock implements Lock, java.io.Serializable {
             return false;
         }
 
+        /**
+         * 该方法用于尝试释放锁
+         * @param releases 计数量state修改数
+         * @return ture-释放锁成功 false-释放锁失败
+         */
         protected final boolean tryRelease(int releases) {
+            /*
+             * 计数量state-releases用于后续判断
+             * 由于该方法仅用于ReentrantLock.unlock使用，所以不存在c<0的情况，故未做判断
+             */
             int c = getState() - releases;
+            // 判断释放锁线程是否为当前线程，如果不是，抛出IllegalMonitorStateException异常
             if (Thread.currentThread() != getExclusiveOwnerThread())
                 throw new IllegalMonitorStateException();
             boolean free = false;
+            /*
+             * c == 0 则代表完全释放锁，此时释放锁成功，将拥有者线程置空
+             * c > 0 则代表未完全释放锁，说明释放的是可重入锁的内层锁
+             */
             if (c == 0) {
                 free = true;
+                // 将锁拥有者线程释放出来以便于后续获取锁线程设置以及GC
                 setExclusiveOwnerThread(null);
             }
             setState(c);
@@ -215,7 +230,7 @@ public class ReentrantLock implements Lock, java.io.Serializable {
         }
 
         /**
-         * tryAcquire的非公平版本。具体调用在{@link nonfairTryAcquire}中
+         * tryAcquire的非公平版本。具体调用在nonfairTryAcquire方法中
          */
         protected final boolean tryAcquire(int acquires) {
             return nonfairTryAcquire(acquires);
@@ -301,6 +316,11 @@ public class ReentrantLock implements Lock, java.io.Serializable {
      * current thread becomes disabled for thread scheduling
      * purposes and lies dormant until the lock has been acquired,
      * at which time the lock hold count is set to one.
+     *
+     * <p>该方法用于获取锁。</p>
+     * <p>如果其他线程没有持有锁，则获取该锁并立即返回，将锁持有计数设置为 1。</p>
+     * <p>如果当前线程已经持有锁，那么持有计数+1并且该方法立即返回。(主要用于重入锁的计数)</p>
+     * <p>如果该锁被另一个线程持有，因线程调度目的，当前线程将被禁用并处于休眠状态，直到获得该锁为止，此时锁持有计数设置为 1</p>
      */
     public void lock() {
         sync.lock();
@@ -470,6 +490,11 @@ public class ReentrantLock implements Lock, java.io.Serializable {
      * count is decremented.  If the hold count is now zero then the lock
      * is released.  If the current thread is not the holder of this
      * lock then {@link IllegalMonitorStateException} is thrown.
+     *
+     * <p>尝试释放此锁。</p>
+     * <p>如果当前线程是此锁的持有者，则持有计数递减。</p>
+     * <p>如果递减后计数为零，则锁将被释放。</p>
+     * <p>如果当前线程不是此锁的持有者，则抛出IllegalMonitorStateException异常。</p>
      *
      * @throws IllegalMonitorStateException if the current thread does not
      *         hold this lock

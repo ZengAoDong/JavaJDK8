@@ -633,7 +633,7 @@ public abstract class AbstractQueuedSynchronizer
 
     /**
      * Wakes up node's successor, if one exists.
-     * 如果该节点存在后继节点的话，唤醒它。
+     * <p>如果该节点存在后继节点的话，唤醒它。</p>
      *
      * @param node the node
      */
@@ -657,13 +657,18 @@ public abstract class AbstractQueuedSynchronizer
          * non-cancelled successor.
          */
         Node s = node.next;
-        // 跳过异常节点
+        /*
+         * 如果node节点的下一节点为异常节点（s.waitStatus > 0）
+         * 则顺着CLH链表往后找，直到找到正常节点（以便于后续唤醒）为止
+         * 如果没找到，则 s = null
+         */
         if (s == null || s.waitStatus > 0) {
             s = null;
             for (Node t = tail; t != null && t != node; t = t.prev)
                 if (t.waitStatus <= 0)
                     s = t;
         }
+        // 如果s != null，则表示找到了正常的可唤醒的节点，唤醒它
         if (s != null)
             LockSupport.unpark(s.thread);
     }
@@ -1286,6 +1291,9 @@ public abstract class AbstractQueuedSynchronizer
      * Releases in exclusive mode.  Implemented by unblocking one or
      * more threads if {@link #tryRelease} returns true.
      * This method can be used to implement method {@link Lock#unlock}.
+     *
+     * 以独占模式释放，其中arg参数为计数器递减数。
+     * 主要是调用{@link #tryRelease}释放锁
      *
      * @param arg the release argument.  This value is conveyed to
      *        {@link #tryRelease} but is otherwise uninterpreted and
