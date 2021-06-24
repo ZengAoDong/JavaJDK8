@@ -671,8 +671,11 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      * Otherwise, because we are using power-of-two expansion, the
      * elements from each bin must either stay at same index, or move
      * with a power of two offset in the new table.
-     *
-     * @return the table
+     * <p>初始化或扩容HashMap(扩容到原本的2倍)。</p>
+     * <p>如果为空，则根据初始容量字段DEFAULT_INITIAL_CAPACITY(16)进行分配。</p>
+     * <p>如果不为空，会按照2的幂一次扩展，储存数据移动到新对应的节点。</p>
+     * <p>扩展时，新表中的每个 bin 中的元素必须保持相同的索引，或在2的幂的偏移量移动（设原链表长度为n，该偏移量=原索引位置+n）以后的位置</p>
+     * @return the table resize之后的Hash表
      */
     final Node<K,V>[] resize() {
         Node<K,V>[] oldTab = table;
