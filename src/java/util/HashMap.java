@@ -254,6 +254,8 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      * than 2 and should be at least 8 to mesh with assumptions in
      * tree removal about conversion back to plain bins upon
      * shrinkage.
+     *
+     * <p>链表扩展成红黑树的阈值，当链表个数大于8之后会转变成红黑树</p>
      */
     static final int TREEIFY_THRESHOLD = 8;
 
@@ -261,6 +263,8 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      * The bin count threshold for untreeifying a (split) bin during a
      * resize operation. Should be less than TREEIFY_THRESHOLD, and at
      * most 6 to mesh with shrinkage detection under removal.
+     *
+     * <p>红黑树转变成链表的阈值，当红黑树节点个数小于等于6之后会转变成红黑树</p>
      */
     static final int UNTREEIFY_THRESHOLD = 6;
 
@@ -269,6 +273,8 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      * (Otherwise the table is resized if too many nodes in a bin.)
      * Should be at least 4 * TREEIFY_THRESHOLD to avoid conflicts
      * between resizing and treeification thresholds.
+     *
+     * <p>链表扩展成红黑树的阈值2，只有当hash表长度大于等于64之后，才会进行链表到红黑树的转换</p>
      */
     static final int MIN_TREEIFY_CAPACITY = 64;
 
@@ -333,6 +339,9 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      * cheapest possible way to reduce systematic lossage, as well as
      * to incorporate impact of the highest bits that would otherwise
      * never be used in index calculations because of table bounds.
+     *
+     * <p>获取key的hash值。主要通过key.hashCode()计算，并通过移位(>>>16)和异或(^)
+     * 的操作，以低成本的方式降低发生hash冲突的概率，使hash能正常扩展。</p>
      */
     static final int hash(Object key) {
         int h;
@@ -417,7 +426,8 @@ public class HashMap<K,V> extends AbstractMap<K,V>
 
     /**
      * The next size value at which to resize (capacity * load factor).
-     *
+     * <p>要调整大小的下一个大小值（容量 * 负载因子）。
+     * 如果尚未分配表数组，则此字段保存初始数组容量。</p>
      * @serial
      */
     // (The javadoc description is true upon serialization.
@@ -614,32 +624,44 @@ public class HashMap<K,V> extends AbstractMap<K,V>
 
     /**
      * Implements Map.put and related methods.
-     *
-     * @param hash hash for key
+     * 实现 Map.put 以及与之相关方法。
+     * @param hash key的hash值
      * @param key the key
      * @param value the value to put
-     * @param onlyIfAbsent if true, don't change existing value
-     * @param evict if false, the table is in creation mode.
+     * @param onlyIfAbsent 如果为true，表示插入数据数据不替换现有元素。（put方法默认传入值false即要替换）
+     * @param evict 如果为false，则采用创建者模式。（put方法默认传入值ture即不使用）
      * @return previous value, or null if none
      */
     final V putVal(int hash, K key, V value, boolean onlyIfAbsent,
                    boolean evict) {
         Node<K,V>[] tab; Node<K,V> p; int n, i;
+        // 如果hash表尚未初始化，则通过resize()初始化
         if ((tab = table) == null || (n = tab.length) == 0)
             n = (tab = resize()).length;
+        // 通过i = (n - 1) & hash算出对应的hash表下标，判断该位置是否为空。
         if ((p = tab[i = (n - 1) & hash]) == null)
+            // 如果该位置为空，则直接创建一个Node放进去即可
             tab[i] = newNode(hash, key, value, null);
         else {
+            // 如果不为空，说明原hash表中该位置已有元素储存，通过一系列判断时候放入
             Node<K,V> e; K k;
+            // 如果hash表中是链表且头节点的元素（或者只有一个元素）的key和需要put的相同，直接替换该元素
             if (p.hash == hash &&
                 ((k = p.key) == key || (key != null && key.equals(k))))
                 e = p;
+            // 如果hash表中对应的元素属于红黑树节点，则通过putTreeVal插入红黑树或替换调对应元素
             else if (p instanceof TreeNode)
                 e = ((TreeNode<K,V>)p).putTreeVal(this, tab, hash, key, value);
+            // 否则遍历链表，替换key相同的元素，如果没有，则将新元素插入链表尾端
             else {
                 for (int binCount = 0; ; ++binCount) {
                     if ((e = p.next) == null) {
                         p.next = newNode(hash, key, value, null);
+                        /*
+                         * 要满足binCount == 7
+                         * 必须是p.next.next.next.next.next.next.next.next == null
+                         * 意思是第9个元素才会使链表向红黑树过渡
+                         */
                         if (binCount >= TREEIFY_THRESHOLD - 1) // -1 for 1st
                             treeifyBin(tab, hash);
                         break;
@@ -757,6 +779,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      */
     final void treeifyBin(Node<K,V>[] tab, int hash) {
         int n, index; Node<K,V> e;
+        // 只有当hash表长度大于等于64之后，才会进行链表到红黑树的转换，否则扩展hash表长度
         if (tab == null || (n = tab.length) < MIN_TREEIFY_CAPACITY)
             resize();
         else if ((e = tab[index = (n - 1) & hash]) != null) {
