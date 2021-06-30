@@ -57,3 +57,4 @@
   可参考本人博客https://blog.csdn.net/August_Z/article/details/102993964
 
 - HashMap（部分方法）
+- ConcurrentHashMap（部分方法）
