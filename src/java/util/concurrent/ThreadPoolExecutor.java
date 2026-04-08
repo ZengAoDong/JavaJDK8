@@ -920,7 +920,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
                     break retry;
                 c = ctl.get();  // Re-read ctl
                 if (runStateOf(c) != rs)
-                    continue retry;
+                    continue  retry;
                 // else CAS failed due to workerCount change; retry inner loop
             }
         }

@@ -261,7 +261,7 @@ public class ReentrantLock implements Lock, java.io.Serializable {
             if (c == 0) {
                 /*
                  * 与非公平锁不同的是调用hasQueuedPredecessors()判断是否有等待时间更长的线程
-                 * 如果有，则tryAcquire失败，线程阻塞并排入CLH队列
+                 * 如果有，则tryAcquire失败，    线程阻塞并排入CLH队列
                  * 如果没有，则执行下面逻辑获取访问权限（锁）
                  *
                  * compareAndSetState方法通过CAS的方式去修改state

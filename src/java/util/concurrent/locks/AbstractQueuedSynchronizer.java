@@ -659,7 +659,7 @@ public abstract class AbstractQueuedSynchronizer
         Node s = node.next;
         /*
          * 如果node节点的下一节点为异常节点（s.waitStatus > 0）
-         * 则顺着CLH链表往后找，直到找到正常节点（以便于后续唤醒）为止
+         * 则从尾结点tail顺着CLH链表往前找，直到找到正常节点（以便于后续唤醒）为止
          * 如果没找到，则 s = null
          */
         if (s == null || s.waitStatus > 0) {
